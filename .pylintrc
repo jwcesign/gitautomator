@@ -1,0 +1,41 @@
+[MASTER]
+disable=
+    C0114, # missing-module-docstring
+    C0115, # missing-class-docstring
+    C0116, # missing-class-docstring
+    W0703, # broad-except
+    W0511, # fixme, like TODO
+    R1732, # consider-using-with
+    C0201, # consider-iterating-dictionary
+    I1101, # Module 'libtorrent' has no 'torrent_info' member
+    W0719, # Raising too general exception
+    R0902, # Too many instance attributes
+    R1714, # onsider merging these comparisons with 'in'
+    R0903, # Too few public methods
+    R0913, # Too many arguments
+    R0911, # Too many return statements
+    W4905, # Using deprecated decorator abc.abstractproperty()
+
+[SIMILARITIES]
+# Minimum lines number of a similarity.
+min-similarity-lines=100
+
+# Ignore comments when computing similarities.
+ignore-comments=yes
+
+# Ignore docstrings when computing similarities.
+ignore-docstrings=yes
+
+# Ignore imports when computing similarities.
+ignore-imports=no
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=240
+
+[BASIC]
+# Regular expression matching correct method names
+# Pylint do not complain for setUp and other if it
+# detects that we inherit from unittest.TestCase
+# But that's not always possible to detect.
+method-rgx=[a-z_][a-z0-9_]{2,30}$|do_POST(Class)?

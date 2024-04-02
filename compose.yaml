@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  gitautomator:
+    container_name: gitautomator
+    image: cesign/gitautomator:v0.0.13
+    network_mode: "host"
+    restart: on-failure
+    environment:
+      - APP_ID=${APP_ID}
+      - CHATGPT_URL=${CHATGPT_URL}
+      - OPENAI_KEY=${OPENAI_KEY}
+    volumes:
+      - ./app.pem:/etc/gitautomator/app.pem
+  seemio:
+    container_name: seemio
+    image: cesign/seemio:v0.0.1
+    network_mode: "host"
+    restart: on-failure
+    command: >
+      sh -c "smee -u $SEEMIO_URL --port 5000"
