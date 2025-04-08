@@ -7,17 +7,20 @@ from bots.utils import helper
 
 class PRReviewRequestBot(bot.GitAutomatorBot):
     def handle_action(self, _: str):
-        maintainers = helper.get_owners(self.repo_client)
-        pr_creator = self.webhook_body['sender']['login']
-        if pr_creator in maintainers:
-            maintainers.remove(pr_creator)
+        try:
+            maintainers = helper.get_owners(self.repo_client)
+            pr_creator = self.webhook_body['sender']['login']
+            if pr_creator in maintainers:
+                maintainers.remove(pr_creator)
 
-        if len(maintainers) == 0:
-            return
-        if len(maintainers) > 2:
-            maintainers = random.sample(maintainers, 2)
-        pull_request = self.repo_client.get_pull(self.webhook_body['pull_request']['number'])
-        pull_request.create_review_request(reviewers=maintainers)
+            if len(maintainers) == 0:
+                return
+            if len(maintainers) > 2:
+                maintainers = random.sample(maintainers, 2)
+            pull_request = self.repo_client.get_pull(self.webhook_body['pull_request']['number'])
+            pull_request.create_review_request(reviewers=maintainers)
+        except Exception as e:
+            print("error:", e)
 
     @property
     def name(self) -> str:

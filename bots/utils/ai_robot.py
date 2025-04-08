@@ -21,7 +21,7 @@ class AIAssistant:
                             [{labe_name, label color, label description}, more...]"},
                 {"role": "user", "content": f"context is: \n{context}\n label's list ls:\n{json.dumps(label_list)}"}
             ],
-            model="gpt-4",
+            model="qwen-plus",
         )
         resp = chat_completion.choices[0].message.content
         return json.loads(resp)
@@ -37,7 +37,7 @@ class AIAssistant:
                             either empty or incomplete, please consider: `{content}`', {content} shouldn't contain the markdown things, and it should be wrapped in ``, not ''"},
                 {"role": "user", "content": f"context is: \n{context}"}
             ],
-            model="gpt-4",
+            model="qwen-plus",
         )
         resp = chat_completion.choices[0].message.content
         return resp
