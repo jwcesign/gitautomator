@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitautomator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitautomator
+  template:
+    metadata:
+      labels:
+        app: gitautomator
+    spec:
+      containers:
+        - name: gitautomator
+          image: cesign/gitautomator:v0.0.13
+          env:
+            - name: APP_ID
+              value: "${APP_ID}"
+            - name: CHATGPT_URL
+              value: "${CHATGPT_URL}"
+            - name: OPENAI_KEY
+              value: "${OPENAI_KEY}"
+          volumeMounts:
+            - name: gitautomator-pem
+              mountPath: /etc/gitautomator/app.pem
+              subPath: app.pem
+        - name: seemio
+          image: cesign/seemio:v0.0.1
+          env:
+            - name: SEEMIO_URL
+              value: "${SEEMIO_URL}"
+          command:
+            - sh
+            - -c
+            - "smee -u $SEEMIO_URL --port 5000"
+      volumes:
+        - name: gitautomator-pem
+          secret:
+            secretName: gitautomator-pem
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitautomator-pem
+type: Opaque
+data:
+  # Replace the value below with your base64-encoded app.pem file content.
+  app.pem: <base64-encoded-app.pem-content>
