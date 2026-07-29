@@ -1,0 +1,6 @@
+*
+!app.py
+!bots/
+!bots/**
+!Dockerfile
+!requirements.txt
