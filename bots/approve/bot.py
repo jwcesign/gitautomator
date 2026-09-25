@@ -19,7 +19,18 @@ class ApproveBot(bot.GitAutomatorBot):
             if self.webhook_body['sender']['login'] in maintainers:
                 if '[bot]' not in pull.user.login:
                     pull.create_review(event="APPROVE")
-                pull.merge()
+
+                merge_methods = (
+                    ('merge', 'allow_merge_commit'),
+                    ('squash', 'allow_squash_merge'),
+                    ('rebase', 'allow_rebase_merge'),
+                )
+                for merge_method, setting in merge_methods:
+                    if getattr(self.repo_client, setting, False):
+                        pull.merge(merge_method=merge_method)
+                        return
+
+                pull.create_issue_comment("No pull request merge method is enabled for this repository.")
 
     @property
     def name(self) -> str:
