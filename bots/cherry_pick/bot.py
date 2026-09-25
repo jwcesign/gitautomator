@@ -4,6 +4,7 @@ import random
 
 from git import Repo
 from github import Repository
+from github.GithubException import UnknownObjectException
 
 from bots import bot
 
@@ -67,11 +68,21 @@ class CherryPickBot(bot.GitAutomatorBot):
                 raise err
 
     def __handle_cherry_pick_end(self):
-        pull_number = self.webhook_body['pull_request']['number']
-        pull_request = self.repo_client.get_pull(pull_number)
-        source_branch = self.repo_client.get_git_ref("heads/" + pull_request.head.ref)
-        if pull_request.head.ref.startswith('cherry-pick-'):
+        pull_request = self.webhook_body['pull_request']
+        source_ref = pull_request['head']['ref']
+        if not source_ref.startswith('cherry-pick-'):
+            return
+
+        head_repo = pull_request['head'].get('repo')
+        if head_repo is None or head_repo.get('full_name') != self.repo_client.full_name:
+            return
+
+        try:
+            source_branch = self.repo_client.get_git_ref("heads/" + source_ref)
             source_branch.delete()
+        except UnknownObjectException:
+            # The repository may delete merged branches before this webhook is handled.
+            return
 
     def handle_action(self, _: str):
         if self.webhook_body['action'] == 'closed':
