@@ -5,7 +5,7 @@ from unittest import mock
 import openai
 
 from bots.ai_label.bot import AILabelBot
-from bots.utils.ai_robot import AIAssistant
+from bots.utils.ai_robot import AIAssistant, AIResponseError
 
 
 class AIAssistantTest(unittest.TestCase):
@@ -54,12 +54,11 @@ class AIAssistantTest(unittest.TestCase):
         )
         openai_client.return_value.chat.completions.create.return_value = completion
 
-        labels = AIAssistant().get_label(
-            {"issue_title": "Broken"},
-            self.available_labels,
-        )
-
-        self.assertEqual(labels, [])
+        with self.assertRaisesRegex(AIResponseError, "invalid JSON"):
+            AIAssistant().get_label(
+                {"issue_title": "Broken"},
+                self.available_labels,
+            )
 
     @mock.patch("bots.utils.ai_robot.oa.OpenAI")
     def test_invalid_schema(self, openai_client):
@@ -74,12 +73,11 @@ class AIAssistantTest(unittest.TestCase):
         )
         openai_client.return_value.chat.completions.create.return_value = completion
 
-        labels = AIAssistant().get_label(
-            {"issue_title": "Broken"},
-            self.available_labels,
-        )
-
-        self.assertEqual(labels, [])
+        with self.assertRaisesRegex(AIResponseError, "invalid schema"):
+            AIAssistant().get_label(
+                {"issue_title": "Broken"},
+                self.available_labels,
+            )
 
     @mock.patch("bots.utils.ai_robot.oa.OpenAI")
     def test_api_failure(self, openai_client):
@@ -87,13 +85,11 @@ class AIAssistantTest(unittest.TestCase):
             openai.APIConnectionError(request=mock.Mock())
         )
 
-        with self.assertLogs("bots.utils.ai_robot", level="ERROR"):
-            labels = AIAssistant().get_label(
+        with self.assertRaisesRegex(AIResponseError, "request failed"):
+            AIAssistant().get_label(
                 {"issue_title": "Broken"},
                 self.available_labels,
             )
-
-        self.assertEqual(labels, [])
 
     @mock.patch("bots.utils.ai_robot.oa.OpenAI")
     def test_empty_response(self, openai_client):
@@ -101,13 +97,11 @@ class AIAssistantTest(unittest.TestCase):
             SimpleNamespace(choices=[])
         )
 
-        with self.assertLogs("bots.utils.ai_robot", level="WARNING"):
-            labels = AIAssistant().get_label(
+        with self.assertRaisesRegex(AIResponseError, "no response"):
+            AIAssistant().get_label(
                 {"issue_title": "Broken"},
                 self.available_labels,
             )
-
-        self.assertEqual(labels, [])
 
 
 class AILabelBotTest(unittest.TestCase):

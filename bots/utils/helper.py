@@ -1,13 +1,33 @@
 import yaml
-from github import Repository
+from github import GithubException,Repository
+
+
+class ConfigurationError(ValueError):
+    """Raised when a GitAutomator configuration file is invalid."""
+
 
 def get_enable_plugin(repo_client: Repository.Repository) -> list:
     try:
         file = repo_client.get_contents(".github/gitautomator.yaml")
-        config = yaml.safe_load(file.decoded_content.decode())
-        return config['plugins']
-    except Exception as _:
+    except GithubException as error:
+        if error.status == 404:
+            return []
+        raise
+
+    try:
+        config = yaml.safe_load(file.decoded_content.decode()) or {}
+    except yaml.YAMLError as error:
+        raise ConfigurationError("Invalid .github/gitautomator.yaml") from error
+
+    if not isinstance(config, dict):
+        raise ConfigurationError(".github/gitautomator.yaml must contain a mapping")
+
+    plugins = config.get('plugins')
+    if plugins is None:
         return []
+    if not isinstance(plugins, list) or not all(isinstance(plugin, str) for plugin in plugins):
+        raise ConfigurationError("The plugins setting must be a list of names")
+    return plugins
 
 def expand_aliases(owners_list, aliases_map):
     """
@@ -41,8 +61,9 @@ def get_owners(repo_client: Repository.Repository) -> list:
         config = yaml.safe_load(file.decoded_content.decode())
         if config and 'owners' in config and isinstance(config['owners'], list):
             owners_set.update(config['owners'])
-    except Exception as _:
-        pass
+    except GithubException as error:
+        if error.status != 404:
+            raise
 
     # 2. Read OWNERS_ALIASES for alias mapping
     try:
@@ -53,8 +74,9 @@ def get_owners(repo_client: Repository.Repository) -> list:
                 aliases_map = alias_data["aliases"]
             else:
                 aliases_map = alias_data
-    except Exception as _:
-        pass
+    except GithubException as error:
+        if error.status != 404:
+            raise
 
     # 3. Read OWNERS and expand the "approvers" and "reviewers" fields using aliases_map
     try:
@@ -65,7 +87,8 @@ def get_owners(repo_client: Repository.Repository) -> list:
             reviewers = owners_data.get("reviewers", [])
             owners_set.update(expand_aliases(approvers, aliases_map))
             owners_set.update(expand_aliases(reviewers, aliases_map))
-    except Exception as _:
-        pass
+    except GithubException as error:
+        if error.status != 404:
+            raise
 
     return list(owners_set)
