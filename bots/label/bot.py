@@ -17,7 +17,7 @@ class LabelBot(bot.GitAutomatorBot):
                 type_label = self.repo_client.get_label(label)
             except GithubException as err:
                 if err.status != 404:
-                    return
+                    raise
                 unknown_labels.append(label)
                 continue
             if type_label is not None:

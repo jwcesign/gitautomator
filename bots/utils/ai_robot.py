@@ -1,10 +1,10 @@
 import json
-import logging
 import os
 
 import openai as oa
 
-LOGGER = logging.getLogger(__name__)
+class AIResponseError(RuntimeError):
+    """Raised when the AI service cannot return a usable response."""
 
 
 class AIAssistant:
@@ -43,25 +43,21 @@ class AIAssistant:
                 response_format={"type": "json_object"},
                 temperature=0,
             )
-        except oa.OpenAIError:
-            LOGGER.exception("AI label selection request failed")
-            return []
+        except oa.OpenAIError as error:
+            raise AIResponseError("AI label selection request failed") from error
 
         try:
             response = chat_completion.choices[0].message.content
-        except (AttributeError, IndexError):
-            LOGGER.warning("AI label selection returned no response")
-            return []
+        except (AttributeError, IndexError) as error:
+            raise AIResponseError("AI label selection returned no response") from error
 
         try:
             parsed_response = json.loads(response)
-        except (json.JSONDecodeError, TypeError):
-            LOGGER.warning("AI label selection returned invalid JSON")
-            return []
+        except (json.JSONDecodeError, TypeError) as error:
+            raise AIResponseError("AI label selection returned invalid JSON") from error
 
         if not isinstance(parsed_response, dict) or not isinstance(parsed_response.get("labels"), list):
-            LOGGER.warning("AI label selection returned an invalid schema")
-            return []
+            raise AIResponseError("AI label selection returned an invalid schema")
 
         available_names = {
             label["name"]
