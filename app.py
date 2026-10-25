@@ -23,6 +23,32 @@ LOGGER = logging.getLogger(__name__)
 
 ERROR_COMMENT_MARKER = "<!-- gitautomator-error -->"
 
+GITHUB_PUBLIC_ERROR_REASONS = (
+    (
+        ("new changes require approval from someone other than", "last pusher"),
+        "New changes require approval from someone other than the last pusher.",
+    ),
+    (
+        ("approving review", "required"),
+        "The pull request still needs the required approving reviews.",
+    ),
+    (
+        ("required status check",),
+        "The pull request has not satisfied the required status checks.",
+    ),
+    (
+        ("resource not accessible by integration",),
+        "The GitHub App does not have permission to perform this action.",
+    ),
+    (("bad credentials",), "GitHub rejected the app credentials."),
+    (("rate limit",), "GitHub rate limited the request. Retry later."),
+    (
+        ("not mergeable",),
+        "The pull request cannot be merged in its current state.",
+    ),
+    (("validation failed",), "GitHub rejected the request as invalid."),
+)
+
 
 def _public_error_message(error: Exception) -> str:
     """Map internal exceptions to messages that are safe to post publicly."""
@@ -31,7 +57,18 @@ def _public_error_message(error: Exception) -> str:
     if isinstance(error, bothelper.ConfigurationError):
         return "The GitAutomator configuration is invalid."
     if isinstance(error, GithubException):
-        return "A GitHub API request failed."
+        summary = "A GitHub API request failed"
+        if isinstance(error.status, int) and 100 <= error.status <= 599:
+            summary += f" (HTTP {error.status})"
+
+        # Never publish response text, headers, URLs, or other exception data.
+        detail = error.data.get("message") if isinstance(error.data, dict) else None
+        if isinstance(detail, str):
+            normalized_detail = detail.casefold()
+            for fragments, public_reason in GITHUB_PUBLIC_ERROR_REASONS:
+                if all(fragment in normalized_detail for fragment in fragments):
+                    return f"{summary}: {public_reason}"
+        return f"{summary}. See the service logs using the reference ID for details."
     return "An unexpected internal error occurred."
 
 # PR: comment(add), open

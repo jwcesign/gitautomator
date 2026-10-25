@@ -1,4 +1,4 @@
-from github import Repository
+from github import GithubException, Repository
 
 from bots import bot
 from bots.utils import helper
@@ -17,8 +17,21 @@ class ApproveBot(bot.GitAutomatorBot):
                                           Please verify the `.github/gitautomator.yaml` configuration.")
                 return
             if self.webhook_body['sender']['login'] in maintainers:
-                if '[bot]' not in pull.user.login:
+                try:
                     pull.create_review(event="APPROVE")
+                except GithubException as error:
+                    message = error.data.get("message") if isinstance(error.data, dict) else None
+                    # Let GitHub identify self-reviews for the authenticated app.
+                    # Every other review failure must still stop the merge.
+                    if (
+                        error.status != 422
+                        or not isinstance(message, str)
+                        or message.casefold().strip().rstrip(".") not in {
+                            "can not approve your own pull request",
+                            "cannot approve your own pull request",
+                        }
+                    ):
+                        raise
 
                 merge_methods = (
                     ('merge', 'allow_merge_commit'),
